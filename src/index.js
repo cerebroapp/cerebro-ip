@@ -1,8 +1,33 @@
-const { shellCommand } = require('cerebro-tools');
-const icon = require('./icon.png');
+const { memoize } = require('cerebro-tools')
+const os = require('os')
+const icon = require('./icon.png')
+const LOCAL_IP_CMD = 'ipconfig getifaddr en0'
 
-const LOCAL_IP_CMD = 'ipconfig getifaddr en0';
-const EXTERNAL_IP_CMD = 'curl --silent http://icanhazip.com';
+const MEMOIZE_OPTIONS = {
+  length: false,
+  promise: 'then',
+  maxAge: 60 * 1000 // IP cache expires in 1 min
+}
+
+const getExternalIp = memoize(() => (
+  fetch('http://icanhazip.com').then(response => response.text())
+), MEMOIZE_OPTIONS)
+
+const getLocalIp = memoize(() => {
+  const ifaces = os.networkInterfaces();
+  const value = Object
+    .keys(ifaces)
+    .map(name => ifaces[name])
+    .reduce((acc, arr) => [...acc, ...arr], [])
+    .find(({family, internal}) => family === 'IPv4' && !internal) || {}
+  const ip = value.address || '0.0.0.0'
+  return Promise.resolve(ip)
+}, MEMOIZE_OPTIONS)
+
+const commands = {
+  'Local IP': getLocalIp,
+  'External IP': getExternalIp
+}
 
 /**
  * Plugin to look and display local and external IPs
@@ -12,24 +37,17 @@ const EXTERNAL_IP_CMD = 'curl --silent http://icanhazip.com';
  */
 const fn = ({term, display, actions}) => {
   if (term.match(/^ip\s?$/i)) {
-    shellCommand(LOCAL_IP_CMD).then(local => {
-      display({
-        icon,
-        title: `Local IP: ${local}`,
-        clipboard: local,
-        getPreview: () => `<div style="font-size: 2em;">${local}</div>`,
-        onSelect: () => actions.copyToClipboard(local),
-      });
-    });
-    shellCommand(EXTERNAL_IP_CMD).then(external => {
-      display({
-        icon,
-        title: `External IP: ${external}`,
-        clipboard: external,
-        getPreview: () => `<div style="font-size: 2em;">${external}</div>`,
-        onSelect: () => actions.copyToClipboard(external),
-      });
-    });
+    Object.keys(commands).forEach(key => {
+      commands[key]().then(ip => {
+        display({
+          icon,
+          title: `${key}: ${ip}`,
+          clipboard: ip,
+          getPreview: () => `<div style="font-size: 2em;">${ip}</div>`,
+          onSelect: () => actions.copyToClipboard(ip),
+        });
+      })
+    })
   }
 };
 

@@ -1,6 +1,6 @@
 {
   "name": "cerebro-ip",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Cerebro plugin to show your local and external IP addresses",
   "license": "MIT",
   "repository": "KELiON/cerebro-ip",
