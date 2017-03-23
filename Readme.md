@@ -1,5 +1,7 @@
 # cerebro-ip
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/KELiON/cerebro-ip.svg)](https://greenkeeper.io/)
+
 > [Cerebro](http://www.cerebroapp.com) plugin to show your local and external IP addresses
 
 ![](screenshot.png)
